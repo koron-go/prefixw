@@ -1,5 +1,5 @@
 /*
-Package prefixw provides a writer which puts with prefix to each lines.
+Package prefixw provides a writer which puts prefix each lines.
 */
 package prefixw
 
