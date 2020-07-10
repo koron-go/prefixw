@@ -5,3 +5,17 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/koron-go/prefixw)](https://goreportcard.com/report/github.com/koron-go/prefixw)
 
 A `io.Writer` appends prefix for each lines.
+
+```go
+import "github.com/koron-go/prefixw"
+import "os"
+
+func main() {
+    w := prefixw.New(os.Stdout, "[PREFIX] ")
+    w.Write([]byte("Hello\nWorld\n"))
+
+    // Output:
+    // [PREFIX] Hello
+    // [PREFIX] World
+}
+```
