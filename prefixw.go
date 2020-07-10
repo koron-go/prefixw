@@ -1,3 +1,6 @@
+/*
+Package prefixw provides a writer which puts with prefix to each lines.
+*/
 package prefixw
 
 import (
@@ -75,7 +78,7 @@ func (w *Writer) flush() error {
 	return err
 }
 
-// Close flush buffered data and close Writer.
+// Close flushes buffered data and closes Writer.
 func (w *Writer) Close() error {
 	w.l.Lock()
 	defer w.l.Unlock()
