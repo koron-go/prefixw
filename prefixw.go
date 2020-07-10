@@ -11,10 +11,10 @@ import (
 
 // Writer implements io.Writer with prefix each lines.
 type Writer struct {
-	w io.Writer
-	p []byte
-	l sync.Mutex
-	b *bytes.Buffer
+	mu sync.Mutex    // mutex to write
+	w  io.Writer     // base io.Writer
+	p  []byte        // prefix bytes, not changed.
+	c  *bytes.Buffer // carried data, which not end with '\n'
 }
 
 // New creates a new prefix Writer.
@@ -27,25 +27,26 @@ func New(w io.Writer, prefix string) *Writer {
 
 // Write writes data to base Writer with prefix.
 func (w *Writer) Write(p []byte) (int, error) {
-	w.l.Lock()
-	defer w.l.Unlock()
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	if w.w == nil {
 		return 0, io.EOF
 	}
-
 	size := len(p)
-	if w.b != nil {
-		w.b.Write(p)
-		p = w.b.Bytes()
-		w.b = nil
+
+	// combined carried data to output.
+	if w.c != nil {
+		w.c.Write(p)
+		p = w.c.Bytes()
+		w.c = nil
 	}
 
 	b := new(bytes.Buffer)
 	for len(p) > 0 {
 		n := bytes.IndexByte(p, '\n')
 		if n < 0 {
-			w.b = new(bytes.Buffer)
-			w.b.Write(p)
+			w.c = new(bytes.Buffer)
+			w.c.Write(p)
 			break
 		}
 		b.Write(w.p)
@@ -54,25 +55,22 @@ func (w *Writer) Write(p []byte) (int, error) {
 	}
 
 	if b.Len() > 0 {
-		_, err := b.WriteTo(w.w)
+		n, err := b.WriteTo(w.w)
 		if err != nil {
-			return 0, err
+			return int(n), err
 		}
 	}
 	return size, nil
 }
 
 func (w *Writer) flush() error {
-	if w.w == nil {
-		return io.EOF
-	}
-	if w.b == nil {
+	if w.c == nil {
 		return nil
 	}
 	b := new(bytes.Buffer)
 	b.Write(w.p)
-	w.b.WriteTo(b)
-	w.b = nil
+	w.c.WriteTo(b)
+	w.c = nil
 	b.WriteByte('\n')
 	_, err := b.WriteTo(w.w)
 	return err
@@ -80,9 +78,10 @@ func (w *Writer) flush() error {
 
 // Close flushes buffered data and closes Writer.
 func (w *Writer) Close() error {
-	w.l.Lock()
-	defer w.l.Unlock()
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	if w.w == nil {
+		// no errors for second or more close.
 		return nil
 	}
 	err := w.flush()
