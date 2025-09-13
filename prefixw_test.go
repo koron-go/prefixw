@@ -10,9 +10,9 @@ import (
 )
 
 // TestClose tests about Close().
-//   * double close
-//   * close without carried data
-//   * Write() after Close()
+//   - double close
+//   - close without carried data
+//   - Write() after Close()
 func TestClose(t *testing.T) {
 	b := &bytes.Buffer{}
 	w := prefixw.New(b, "PREFIX ")
